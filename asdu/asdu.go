@@ -28,6 +28,8 @@ var (
 	ParamsNarrow = &Params{CauseSize: 1, CommonAddrSize: 1, InfoObjAddrSize: 1, InfoObjTimeZone: time.UTC}
 	// ParamsWide is the largest configuration.
 	ParamsWide = &Params{CauseSize: 2, CommonAddrSize: 2, InfoObjAddrSize: 3, InfoObjTimeZone: time.UTC}
+	// ParamsSpecial is the 南京因泰来 初始化结束帧 2，2，2
+	ParamsSpecial = &Params{CauseSize: 2, CommonAddrSize: 2, InfoObjAddrSize: 2, InfoObjTimeZone: time.UTC}
 )
 
 // Params 定义了ASDU相关特定参数
@@ -146,14 +148,14 @@ func (sf *ASDU) SetVariableNumber(n int) error {
 }
 
 // Respond returns a new "responding" ASDU which addresses "initiating" u.
-//func (u *ASDU) Respond(t TypeID, c Cause) *ASDU {
-//	return NewASDU(u.Params, Identifier{
-//		CommonAddr: u.CommonAddr,
-//		OrigAddr:   u.OrigAddr,
-//		Type:       t,
-//		Cause:      c | u.Cause&TestFlag,
-//	})
-//}
+func (u *ASDU) Respond(t TypeID, c Cause) *ASDU {
+	return NewASDU(u.Params, Identifier{
+		CommonAddr: u.CommonAddr,
+		OrigAddr:   u.OrigAddr,
+		Type:       t,
+		Coa:        CauseOfTransmission{Cause: c},
+	})
+}
 
 // Reply returns a new "responding" ASDU which addresses "initiating" addr with a copy of Info.
 func (sf *ASDU) Reply(c Cause, addr CommonAddr) *ASDU {
@@ -309,9 +311,9 @@ func (sf *ASDU) fixInfoObjSize() error {
 	var size int
 	// read the variable structure qualifier
 	if sf.Variable.IsSequence {
-		size = sf.InfoObjAddrSize + int(sf.Variable.Number)*objSize
+		size = sf.GetInfoObjAddrSize() + int(sf.Variable.Number)*objSize
 	} else {
-		size = int(sf.Variable.Number) * (sf.InfoObjAddrSize + objSize)
+		size = int(sf.Variable.Number) * (sf.GetInfoObjAddrSize() + objSize)
 	}
 
 	switch {

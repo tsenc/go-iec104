@@ -34,7 +34,7 @@ func (sf *ASDU) DecodeUint16() uint16 {
 
 // AppendInfoObjAddr append information object address to information object
 func (sf *ASDU) AppendInfoObjAddr(addr InfoObjAddr) error {
-	switch sf.InfoObjAddrSize {
+	switch sf.GetInfoObjAddrSize() {
 	case 1:
 		if addr > 255 {
 			return ErrInfoObjAddrFit
@@ -59,7 +59,7 @@ func (sf *ASDU) AppendInfoObjAddr(addr InfoObjAddr) error {
 // DecodeInfoObjAddr decode info object address then the pass it
 func (sf *ASDU) DecodeInfoObjAddr() InfoObjAddr {
 	var ioa InfoObjAddr
-	switch sf.InfoObjAddrSize {
+	switch sf.GetInfoObjAddrSize() {
 	case 1:
 		ioa = InfoObjAddr(sf.infoObj[0])
 		sf.infoObj = sf.infoObj[1:]

@@ -17,6 +17,7 @@ const (
 	APCICtlFiledSize = 4 // control filed(4)
 
 	APDUSizeMax      = 255                                 // start(1) + length(1) + control field(4) + ASDU
+	REGSizeMax       = 32                                  // start(1) + length(1) + control field(4) + ASDU
 	APDUFieldSizeMax = APCICtlFiledSize + asdu.ASDUSizeMax // control field(4) + ASDU
 )
 

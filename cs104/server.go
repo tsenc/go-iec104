@@ -3,7 +3,9 @@ package cs104
 import (
 	"context"
 	"crypto/tls"
+	"io"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -84,9 +86,40 @@ func (sf *Server) ListenAndServer(addr string) {
 			sf.Error("server run failed, %v", err)
 			return
 		}
-
+		sf.Debug("new conn %v", conn)
 		sf.wg.Add(1)
 		go func() {
+
+			// first check reg data
+			rawData := make([]byte, REGSizeMax)
+			byteCount, err := io.ReadAtLeast(conn, rawData, 1)
+
+			if err != nil {
+				// See: https://github.com/golang/go/issues/4373
+				if err != io.EOF && err != io.ErrClosedPipe ||
+					strings.Contains(err.Error(), "use of closed network connection") {
+					sf.Error("receive failed, %v", err)
+					sf.wg.Done()
+					return
+				}
+
+				if e, ok := err.(net.Error); ok && !e.Temporary() {
+					sf.Error("receive failed, %v", err)
+					sf.wg.Done()
+					return
+				}
+
+				if byteCount == 0 && err == io.EOF {
+					sf.Error("remote connect closed, %v", err)
+					sf.wg.Done()
+					return
+				}
+			}
+
+			sf.Debug("new conn with reg data %d %s", byteCount, string(rawData))
+
+			// check reg data.
+
 			sess := &SrvSession{
 				config:   &sf.config,
 				params:   &sf.params,
@@ -140,3 +173,38 @@ func (sf *Server) Params() *asdu.Params { return &sf.params }
 
 // UnderlyingConn imp interface Connect
 func (sf *Server) UnderlyingConn() net.Conn { return nil }
+
+//InterrogationCmd wrap asdu.InterrogationCmd
+func (sf *Server) InterrogationCmd(coa asdu.CauseOfTransmission, ca asdu.CommonAddr, qoi asdu.QualifierOfInterrogation) error {
+	return asdu.InterrogationCmd(sf, coa, ca, qoi)
+}
+
+// CounterInterrogationCmd wrap asdu.CounterInterrogationCmd
+func (sf *Server) CounterInterrogationCmd(coa asdu.CauseOfTransmission, ca asdu.CommonAddr, qcc asdu.QualifierCountCall) error {
+	return asdu.CounterInterrogationCmd(sf, coa, ca, qcc)
+}
+
+// ReadCmd wrap asdu.ReadCmd
+func (sf *Server) ReadCmd(coa asdu.CauseOfTransmission, ca asdu.CommonAddr, ioa asdu.InfoObjAddr) error {
+	return asdu.ReadCmd(sf, coa, ca, ioa)
+}
+
+// ClockSynchronizationCmd wrap asdu.ClockSynchronizationCmd
+func (sf *Server) ClockSynchronizationCmd(coa asdu.CauseOfTransmission, ca asdu.CommonAddr, t time.Time) error {
+	return asdu.ClockSynchronizationCmd(sf, coa, ca, t)
+}
+
+// ResetProcessCmd wrap asdu.ResetProcessCmd
+func (sf *Server) ResetProcessCmd(coa asdu.CauseOfTransmission, ca asdu.CommonAddr, qrp asdu.QualifierOfResetProcessCmd) error {
+	return asdu.ResetProcessCmd(sf, coa, ca, qrp)
+}
+
+// DelayAcquireCommand wrap asdu.DelayAcquireCommand
+func (sf *Server) DelayAcquireCommand(coa asdu.CauseOfTransmission, ca asdu.CommonAddr, msec uint16) error {
+	return asdu.DelayAcquireCommand(sf, coa, ca, msec)
+}
+
+// TestCommand  wrap asdu.TestCommand
+func (sf *Server) TestCommand(coa asdu.CauseOfTransmission, ca asdu.CommonAddr) error {
+	return asdu.TestCommand(sf, coa, ca)
+}

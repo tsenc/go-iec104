@@ -1398,6 +1398,34 @@ func (sf *ASDU) GetIntegratedTotals() []BinaryCounterReadingInfo {
 	return info
 }
 
+// GetIntegratedFloatTotals [M_IT_NB_1, M_IT_TC_1].获得累计量，短浮点数信息体集合
+func (sf *ASDU) GetIntegratedFloatTotals() []MeasuredValueFloatInfo {
+	info := make([]MeasuredValueFloatInfo, 0, sf.Variable.Number)
+	infoObjAddr := InfoObjAddr(0)
+	for i, once := 0, false; i < int(sf.Variable.Number); i++ {
+		if !sf.Variable.IsSequence || !once {
+			once = true
+			infoObjAddr = sf.DecodeInfoObjAddr()
+		} else {
+			infoObjAddr++
+		}
+
+		value := sf.DecodeFloat32()
+		qua := sf.DecodeByte() & 0xf1
+		var t time.Time
+		if sf.Type == M_IT_TC_1 {
+			t = sf.DecodeCP56Time2a()
+		}
+
+		info = append(info, MeasuredValueFloatInfo{
+			Ioa:   infoObjAddr,
+			Value: value,
+			Qds:   QualityDescriptor(qua),
+			Time:  t})
+	}
+	return info
+}
+
 // GetEventOfProtectionEquipment [M_EP_TA_1] [M_EP_TD_1] 获取继电器保护设备事件信息体
 func (sf *ASDU) GetEventOfProtectionEquipment() []EventOfProtectionEquipmentInfo {
 	info := make([]EventOfProtectionEquipmentInfo, 0, sf.Variable.Number)

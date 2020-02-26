@@ -65,7 +65,7 @@ const (
 	M_EP_TE_1 // 39: packed start events of protection equipment with time tag CP56Time2a, 继电保护装置成组启动事件-带CP56Time2a
 	M_EP_TF_1 // 40: packed output circuit information of protection equipment with time tag CP56Time2a, 继电保护装置成组输出电路信息-带CP56Time2a
 	S_IT_TC_1 // 41: integrated totals containing time-tagged security statistics
-	_         // 42: reserved for further compatible definitions
+	M_FT_NA_1 // 42: 电科院扩展部分 故障事件信息
 	_         // 43: reserved for further compatible definitions
 	_         // 44: reserved for further compatible definitions
 	// 在控制方向的过程信息 <45..69>
@@ -148,14 +148,27 @@ const (
 	_         // 118: reserved for further compatible definitions
 	_         // 119: reserved for further compatible definitions
 	// 文件传输 <120..127>
-	F_FR_NA_1 // 120: file ready  文件准备就绪
-	F_SR_NA_1 // 121: section ready 节准备就绪
-	F_SC_NA_1 // 122: call directory, select file, call file, call section 如唤目录，选择文件，召唤文件，召唤节
-	F_LS_NA_1 // 123: last section, last segment 最后的节，最后的段
-	F_AF_NA_1 // 124: ack file, ack section 认可文件，认可节
-	F_SG_NA_1 // 125: segment 段
-	F_DR_TA_1 // 126: directory 目录
-	F_SC_NB_1 // 127: QueryLog - request archive file (section 104) 查询日志
+	F_FR_NA_1             // 120: file ready  文件准备就绪
+	F_SR_NA_1             // 121: section ready 节准备就绪
+	F_SC_NA_1             // 122: call directory, select file, call file, call section 如唤目录，选择文件，召唤文件，召唤节
+	F_LS_NA_1             // 123: last section, last segment 最后的节，最后的段
+	F_AF_NA_1             // 124: ack file, ack section 认可文件，认可节
+	F_SG_NA_1             // 125: segment 段
+	F_DR_TA_1             // 126: directory 目录
+	F_SC_NB_1             // 127: QueryLog - request archive file (section 104) 查询日志
+	C_SR_NA_1 = 72 + iota // 200: 电科院扩展部分 切换定值区
+	C_RR_NA_1             // 201: 电科院扩展部分 读定值区号
+	C_RS_NA_1             // 202: 电科院扩展部分 读参数和定值
+	C_WS_NA_1             // 203: 电科院扩展部分 写参数和定值
+	_                     // 204
+	_                     // 205
+	M_IT_NB_1             // 206: 电科院扩展部分 累计量，短浮点数
+	M_IT_TC_1             // 207: 电科院扩展部分 带 CP56Time2a 时标的累计量，短浮点数
+	_                     // 208
+	_                     // 209
+	//F_FR_NA_1       // 210: 电科院扩展部分 文件传输
+	//F_SR_NA_1       // 211: 电科院扩展部分 软件升级
+
 )
 
 // infoObjSize maps the type identification (TypeID) to the serial octet size.
@@ -225,28 +238,40 @@ var infoObjSize = [256]int{
 	F_AF_NA_1: 4,
 	// F_SG_NA_1: 4 + variable,
 	F_DR_TA_1: 13,
+	M_IT_NB_1: 5,
+	M_IT_TC_1: 12,
 }
 
 // GetInfoObjSize get the serial octet size of the type identification (TypeID).
 func GetInfoObjSize(id TypeID) (int, error) {
 	size := infoObjSize[id]
-	if size == 0 {
+	if size == 0 && id != M_EI_NA_1 {
 		return 0, ErrTypeIdentifier
 	}
 	return size, nil
 }
 
+func (sf *ASDU) GetInfoObjAddrSize() int {
+	if sf.Type == M_EI_NA_1 {
+		return 2
+	}
+	return sf.InfoObjAddrSize
+}
+
 const (
-	_TypeIDName0 = "M_SP_NA_1M_SP_TA_1M_DP_NA_1M_DP_TA_1M_ST_NA_1M_ST_TA_1M_BO_NA_1M_BO_TA_1M_ME_NA_1M_ME_TA_1M_ME_NB_1M_ME_TB_1M_ME_NC_1M_ME_TC_1M_IT_NA_1M_IT_TA_1M_EP_TA_1M_EP_TB_1M_EP_TC_1M_PS_NA_1M_ME_ND_1"
-	_TypeIDName1 = "M_SP_TB_1M_DP_TB_1M_ST_TB_1M_BO_TB_1M_ME_TD_1M_ME_TE_1M_ME_TF_1M_IT_TB_1M_EP_TD_1M_EP_TE_1M_EP_TF_1S_IT_TC_1"
-	_TypeIDName2 = "C_SC_NA_1C_DC_NA_1C_RC_NA_1C_SE_NA_1C_SE_NB_1C_SE_NC_1C_BO_NA_1"
-	_TypeIDName3 = "C_SC_TA_1C_DC_TA_1C_RC_TA_1C_SE_TA_1C_SE_TB_1C_SE_TC_1C_BO_TA_1"
-	_TypeIDName4 = "M_EI_NA_1"
-	_TypeIDName5 = "S_CH_NA_1S_RP_NA_1S_AR_NA_1S_KR_NA_1S_KS_NA_1S_KC_NA_1S_ER_NA_1"
-	_TypeIDName6 = "S_US_NA_1S_UQ_NA_1S_UR_NA_1S_UK_NA_1S_UA_NA_1S_UC_NA_1"
-	_TypeIDName7 = "C_IC_NA_1C_CI_NA_1C_RD_NA_1C_CS_NA_1C_TS_NA_1C_RP_NA_1C_CD_NA_1C_TS_TA_1"
-	_TypeIDName8 = "P_ME_NA_1P_ME_NB_1P_ME_NC_1P_AC_NA_1"
-	_TypeIDName9 = "F_FR_NA_1F_SR_NA_1F_SC_NA_1F_LS_NA_1F_AF_NA_1F_SG_NA_1F_DR_TA_1F_SC_NB_1"
+	_TypeIDName0  = "M_SP_NA_1M_SP_TA_1M_DP_NA_1M_DP_TA_1M_ST_NA_1M_ST_TA_1M_BO_NA_1M_BO_TA_1M_ME_NA_1M_ME_TA_1M_ME_NB_1M_ME_TB_1M_ME_NC_1M_ME_TC_1M_IT_NA_1M_IT_TA_1M_EP_TA_1M_EP_TB_1M_EP_TC_1M_PS_NA_1M_ME_ND_1"
+	_TypeIDName1  = "M_SP_TB_1M_DP_TB_1M_ST_TB_1M_BO_TB_1M_ME_TD_1M_ME_TE_1M_ME_TF_1M_IT_TB_1M_EP_TD_1M_EP_TE_1M_EP_TF_1S_IT_TC_1M_FT_NA_1"
+	_TypeIDName2  = "C_SC_NA_1C_DC_NA_1C_RC_NA_1C_SE_NA_1C_SE_NB_1C_SE_NC_1C_BO_NA_1"
+	_TypeIDName3  = "C_SC_TA_1C_DC_TA_1C_RC_TA_1C_SE_TA_1C_SE_TB_1C_SE_TC_1C_BO_TA_1"
+	_TypeIDName4  = "M_EI_NA_1"
+	_TypeIDName5  = "S_CH_NA_1S_RP_NA_1S_AR_NA_1S_KR_NA_1S_KS_NA_1S_KC_NA_1S_ER_NA_1"
+	_TypeIDName6  = "S_US_NA_1S_UQ_NA_1S_UR_NA_1S_UK_NA_1S_UA_NA_1S_UC_NA_1"
+	_TypeIDName7  = "C_IC_NA_1C_CI_NA_1C_RD_NA_1C_CS_NA_1C_TS_NA_1C_RP_NA_1C_CD_NA_1C_TS_TA_1"
+	_TypeIDName8  = "P_ME_NA_1P_ME_NB_1P_ME_NC_1P_AC_NA_1"
+	_TypeIDName9  = "F_FR_NA_1F_SR_NA_1F_SC_NA_1F_LS_NA_1F_AF_NA_1F_SG_NA_1F_DR_TA_1F_SC_NB_1"
+	_TypeIDName10 = "C_SR_NA_1C_RR_NA_1C_RS_NA_1C_WS_NA_1"
+	_TypeIDName11 = "M_IT_NB_1M_IT_TC_1"
+	_TypeIDName12 = "F_FR_NA_1F_SR_NA_1"
 )
 
 func (sf TypeID) String() string {
@@ -255,7 +280,7 @@ func (sf TypeID) String() string {
 	case 1 <= sf && sf <= 21:
 		sf--
 		s = _TypeIDName0[sf*9 : 9*(sf+1)]
-	case 30 <= sf && sf <= 41:
+	case 30 <= sf && sf <= 42:
 		sf -= 30
 		s = _TypeIDName1[sf*9 : 9*(sf+1)]
 	case 45 <= sf && sf <= 51:
@@ -281,6 +306,15 @@ func (sf TypeID) String() string {
 	case 120 <= sf && sf <= 127:
 		sf -= 120
 		s = _TypeIDName9[sf*9 : 9*(sf+1)]
+	case 200 <= sf && sf <= 203:
+		sf -= 200
+		s = _TypeIDName10[sf*9 : 9*(sf+1)]
+	case 206 <= sf && sf <= 207:
+		sf -= 206
+		s = _TypeIDName11[sf*9 : 9*(sf+1)]
+	case 210 <= sf && sf <= 211:
+		sf -= 210
+		s = _TypeIDName12[sf*9 : 9*(sf+1)]
 	default:
 		s = strconv.FormatInt(int64(sf), 10)
 	}

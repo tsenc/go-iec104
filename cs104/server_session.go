@@ -197,6 +197,8 @@ func (sf *SrvSession) run(ctx context.Context) {
 		sf.sendRaw <- iframe
 	}
 
+	sendUFrame(uStartDtActive)
+
 	defer func() {
 		sf.setConnectStatus(disconnected)
 		checkTicker.Stop()
@@ -291,8 +293,11 @@ func (sf *SrvSession) run(ctx context.Context) {
 				case uStartDtActive:
 					sendUFrame(uStartDtConfirm)
 					isActive = true
-				// case uStartDtConfirm:
-				// 	isActive = true
+					sf.Debug("isActive %v", isActive)
+				case uStartDtConfirm:
+					isActive = true
+					sf.Debug("isActive %v", isActive)
+					//asdu.EndOfInitialization(sf, asdu.CauseOfTransmission{false, false, asdu.Initialized}, )
 				// 	startDtActiveSendSince = willNotTimeout
 				case uStopDtActive:
 					sendUFrame(uStopDtConfirm)
@@ -409,9 +414,18 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 	sf.Debug("ASDU %+v", asduPack)
 
 	switch asduPack.Identifier.Type {
+	case asdu.M_EI_NA_1: // EndOfInitialization
+		if !(asduPack.Identifier.Coa.Cause == asdu.Initialized) {
+			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
+		}
+		iaddr, coi := asduPack.GetEndOfInitialization()
+		return sf.handler.EndOfInitializationHandler(sf, asduPack, iaddr, coi)
+
 	case asdu.C_IC_NA_1: // InterrogationCmd
 		if !(asduPack.Identifier.Coa.Cause == asdu.Activation ||
-			asduPack.Identifier.Coa.Cause == asdu.Deactivation) {
+			asduPack.Identifier.Coa.Cause == asdu.ActivationCon ||
+			asduPack.Identifier.Coa.Cause == asdu.Deactivation ||
+			asduPack.Identifier.Coa.Cause == asdu.ActivationTerm) {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
 		}
 		if asduPack.CommonAddr == asdu.InvalidCommonAddr {
@@ -424,7 +438,10 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		return sf.handler.InterrogationHandler(sf, asduPack, qoi)
 
 	case asdu.C_CI_NA_1: // CounterInterrogationCmd
-		if asduPack.Identifier.Coa.Cause != asdu.Activation {
+		if !(asduPack.Identifier.Coa.Cause == asdu.Activation ||
+			asduPack.Identifier.Coa.Cause == asdu.ActivationCon ||
+			asduPack.Identifier.Coa.Cause == asdu.Deactivation ||
+			asduPack.Identifier.Coa.Cause == asdu.ActivationTerm) {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
 		}
 		if asduPack.CommonAddr == asdu.InvalidCommonAddr {
@@ -446,7 +463,7 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		return sf.handler.ReadHandler(sf, asduPack, asduPack.GetReadCmd())
 
 	case asdu.C_CS_NA_1: // ClockSynchronizationCmd
-		if asduPack.Identifier.Coa.Cause != asdu.Activation {
+		if asduPack.Identifier.Coa.Cause != asdu.ActivationCon {
 			return asduPack.SendReplyMirror(sf, asdu.UnknownCOT)
 		}
 		if asduPack.CommonAddr == asdu.InvalidCommonAddr {
@@ -498,7 +515,6 @@ func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
 		}
 		return sf.handler.DelayAcquisitionHandler(sf, asduPack, msec)
 	}
-
 	if err := sf.handler.ASDUHandler(sf, asduPack); err != nil {
 		return asduPack.SendReplyMirror(sf, asdu.UnknownTypeID)
 	}

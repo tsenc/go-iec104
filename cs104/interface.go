@@ -8,6 +8,7 @@ import (
 
 // ServerHandlerInterface is the interface of server handler
 type ServerHandlerInterface interface {
+	EndOfInitializationHandler(asdu.Connect, *asdu.ASDU, asdu.InfoObjAddr, asdu.CauseOfInitial) error
 	InterrogationHandler(asdu.Connect, *asdu.ASDU, asdu.QualifierOfInterrogation) error
 	CounterInterrogationHandler(asdu.Connect, *asdu.ASDU, asdu.QualifierCountCall) error
 	ReadHandler(asdu.Connect, *asdu.ASDU, asdu.InfoObjAddr) error
