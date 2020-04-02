@@ -148,7 +148,7 @@ const (
 	_         // 118: reserved for further compatible definitions
 	_         // 119: reserved for further compatible definitions
 	// 文件传输 <120..127>
-	F_FR_NA_1             // 120: file ready  文件准备就绪
+	_                     // 120: file ready  文件准备就绪
 	F_SR_NA_1             // 121: section ready 节准备就绪
 	F_SC_NA_1             // 122: call directory, select file, call file, call section 如唤目录，选择文件，召唤文件，召唤节
 	F_LS_NA_1             // 123: last section, last segment 最后的节，最后的段
@@ -165,8 +165,8 @@ const (
 	M_IT_NB_1             // 206: 电科院扩展部分 累计量，短浮点数
 	M_IT_TC_1             // 207: 电科院扩展部分 带 CP56Time2a 时标的累计量，短浮点数
 	_                     // 208
-	_                     // 209
-	//F_FR_NA_1       // 210: 电科院扩展部分 文件传输
+	F_NF_NA_1             // 209：新文件主动上报
+	F_FR_NA_1             // 210: 电科院扩展部分 文件传输
 	//F_SR_NA_1       // 211: 电科院扩展部分 软件升级
 
 )
@@ -231,7 +231,7 @@ var infoObjSize = [256]int{
 	P_ME_NC_1: 5,
 	P_AC_NA_1: 1,
 
-	F_FR_NA_1: 6,
+	//F_FR_NA_1: 6,
 	F_SR_NA_1: 7,
 	F_SC_NA_1: 4,
 	F_LS_NA_1: 5,
@@ -240,6 +240,8 @@ var infoObjSize = [256]int{
 	F_DR_TA_1: 13,
 	M_IT_NB_1: 5,
 	M_IT_TC_1: 12,
+	F_NF_NA_1: 3, // 附加数据包类型(1) + 操作标识(1) + 文件名长度(1) + 文件名(...n) + 文件ID(4)
+	F_FR_NA_1: 6, // 附加数据包类型(1) + 操作标识(1)
 }
 
 // GetInfoObjSize get the serial octet size of the type identification (TypeID).
@@ -271,7 +273,7 @@ const (
 	_TypeIDName9  = "F_FR_NA_1F_SR_NA_1F_SC_NA_1F_LS_NA_1F_AF_NA_1F_SG_NA_1F_DR_TA_1F_SC_NB_1"
 	_TypeIDName10 = "C_SR_NA_1C_RR_NA_1C_RS_NA_1C_WS_NA_1"
 	_TypeIDName11 = "M_IT_NB_1M_IT_TC_1"
-	_TypeIDName12 = "F_FR_NA_1F_SR_NA_1"
+	_TypeIDName12 = "F_NF_NA_1F_FR_NA_1F_SR_NA_1"
 )
 
 func (sf TypeID) String() string {
@@ -312,8 +314,8 @@ func (sf TypeID) String() string {
 	case 206 <= sf && sf <= 207:
 		sf -= 206
 		s = _TypeIDName11[sf*9 : 9*(sf+1)]
-	case 210 <= sf && sf <= 211:
-		sf -= 210
+	case 209 <= sf && sf <= 211:
+		sf -= 209
 		s = _TypeIDName12[sf*9 : 9*(sf+1)]
 	default:
 		s = strconv.FormatInt(int64(sf), 10)

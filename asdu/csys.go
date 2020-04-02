@@ -255,6 +255,69 @@ func TestCommandCP56Time2a(c Connect, coa CauseOfTransmission, ca CommonAddr, t 
 	return c.Send(u)
 }
 
+// FileReadActiveCmd send file read command [F_FR_NA_1],读文件召唤报文(SQ = 0)
+// 传送原因(coa)用于
+// 控制方向：
+// <5> := 请求
+// <6> := 激活
+// 监视方向：
+// <5> := 请求
+// <7> := 激活确认
+func FileReadActiveCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, fileName string) error {
+	if err := c.Params().Valid(); err != nil {
+		return err
+	}
+	coa.Cause = Activation
+	u := NewASDU(c.Params(), Identifier{
+		F_FR_NA_1,
+		VariableStruct{IsSequence: false, Number: 1},
+		coa,
+		0,
+		ca,
+	})
+	if err := u.AppendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
+		return err
+	}
+	u.AppendBytes(0x02)                // 附加数据包类型 02:文件传输
+	u.AppendBytes(0x03)                // 操作标识 03:读文件激活
+	u.AppendBytes(byte(len(fileName))) // 文件名长度 字节数：x
+	u.AppendString(fileName)
+	return c.Send(u)
+}
+
+// FileReadRequestCmd send file read command [F_FR_NA_1],读文件数据传输确认(SQ = 0)
+// 传送原因(coa)用于
+// 控制方向：
+// <5> := 请求
+// 监视方向：
+// <5> := 请求
+func FileReadRequestCmd(c Connect, coa CauseOfTransmission, ca CommonAddr, fileId uint32, segmentId uint32, failed bool) error {
+	if err := c.Params().Valid(); err != nil {
+		return err
+	}
+	coa.Cause = Request
+	u := NewASDU(c.Params(), Identifier{
+		F_FR_NA_1,
+		VariableStruct{IsSequence: false, Number: 1},
+		coa,
+		0,
+		ca,
+	})
+	if err := u.AppendInfoObjAddr(InfoObjAddrIrrelevant); err != nil {
+		return err
+	}
+	u.AppendBytes(0x02)             // 附加数据包类型 02:文件传输
+	u.AppendBytes(0x06)             // 操作标识 06:读文件数据响应
+	u.AppendBitsString32(fileId)    // 文件ID
+	u.AppendBitsString32(segmentId) // 数据段号
+	if failed {
+		u.AppendBytes(1) // 结果描述字 0:成功 1:失败
+	} else {
+		u.AppendBytes(0)
+	}
+	return c.Send(u)
+}
+
 // GetInterrogationCmd [C_IC_NA_1] 获取总召唤信息体(信息对象地址，召唤限定词)
 func (sf *ASDU) GetInterrogationCmd() (InfoObjAddr, QualifierOfInterrogation) {
 	return sf.DecodeInfoObjAddr(), QualifierOfInterrogation(sf.infoObj[0])

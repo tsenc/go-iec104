@@ -61,6 +61,10 @@ type Client struct {
 	onConnectionLost func(c *Client)
 }
 
+func (sf *Client) ServerId() string {
+	return ""
+}
+
 // NewClient returns an IEC104 master,default config and default asdu.ParamsWide params
 func NewClient(handler ClientHandlerInterface, o *ClientOption) *Client {
 

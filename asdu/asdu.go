@@ -322,6 +322,9 @@ func (sf *ASDU) fixInfoObjSize() error {
 	case size > len(sf.infoObj):
 		return io.EOF
 	case size < len(sf.infoObj): // not explicitly prohibited
+		if sf.Type == F_NF_NA_1 || sf.Type == F_FR_NA_1 {
+			return nil
+		}
 		sf.infoObj = sf.infoObj[:size]
 	}
 

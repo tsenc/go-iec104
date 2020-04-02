@@ -31,6 +31,10 @@ type Server struct {
 	wg sync.WaitGroup
 }
 
+func (sf *Server) ServerId() string {
+	return ""
+}
+
 // NewServer new a server, default config and default asdu.ParamsWide params
 func NewServer(handler ServerHandlerInterface) *Server {
 	return &Server{
@@ -121,6 +125,7 @@ func (sf *Server) ListenAndServer(addr string) {
 			// check reg data.
 
 			sess := &SrvSession{
+				serverId: string(rawData),
 				config:   &sf.config,
 				params:   &sf.params,
 				handler:  sf.handler,

@@ -21,10 +21,11 @@ const (
 
 // SrvSession the cs104 server session
 type SrvSession struct {
-	config  *Config
-	params  *asdu.Params
-	conn    net.Conn
-	handler ServerHandlerInterface
+	serverId string
+	config   *Config
+	params   *asdu.Params
+	conn     net.Conn
+	handler  ServerHandlerInterface
 
 	rcvASDU  chan []byte // for received asdu
 	sendASDU chan []byte // for send asdu
@@ -48,6 +49,10 @@ type SrvSession struct {
 	wg     sync.WaitGroup
 	cancel context.CancelFunc
 	ctx    context.Context
+}
+
+func (sf *SrvSession) ServerId() string {
+	return sf.serverId
 }
 
 // RecvLoop feeds t.rcvRaw.
@@ -140,6 +145,7 @@ func (sf *SrvSession) sendLoop() {
 					}
 					// temporary error may be recoverable
 				}
+				sf.Debug("TX Raw[% x] %d %v", apdu, byteCount, err)
 				wrCnt += byteCount
 			}
 		}
@@ -248,8 +254,12 @@ func (sf *SrvSession) run(ctx context.Context) {
 			}
 
 			// 空闲时间到，发送TestFrActive帧,保活
-			if now.Sub(idleTimeout3Sine) >= sf.config.IdleTimeout3 {
+			if now.Sub(idleTimeout3Sine) >= sf.config.IdleTimeout3 && isActive {
 				sendUFrame(uTestFrActive)
+				testFrAliveSendSince = time.Now()
+				idleTimeout3Sine = testFrAliveSendSince
+			} else if now.Sub(idleTimeout3Sine) >= sf.config.IdleTimeout3 && !isActive {
+				sendUFrame(uStartDtActive)
 				testFrAliveSendSince = time.Now()
 				idleTimeout3Sine = testFrAliveSendSince
 			}

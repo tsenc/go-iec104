@@ -19,6 +19,13 @@ func (sf *ASDU) DecodeByte() byte {
 	return v
 }
 
+// DecodeBytes decode a byte then the pass it
+func (sf *ASDU) DecodeBytes(size int) []byte {
+	v := sf.infoObj[:size]
+	sf.infoObj = sf.infoObj[size:]
+	return v
+}
+
 // AppendUint16 append some uint16 to info object
 func (sf *ASDU) AppendUint16(b uint16) *ASDU {
 	sf.infoObj = append(sf.infoObj, byte(b&0xff), byte((b>>8)&0xff))
@@ -114,6 +121,24 @@ func (sf *ASDU) AppendFloat32(f float32) *ASDU {
 func (sf *ASDU) DecodeFloat32() float32 {
 	f := math.Float32frombits(binary.LittleEndian.Uint32(sf.infoObj))
 	sf.infoObj = sf.infoObj[4:]
+	return f
+}
+
+// AppendString append a string value to info object
+// See companion standard 101, subclass 7.2.6.8.
+func (sf *ASDU) AppendString(s string) *ASDU {
+	bts := []byte(s)
+	sf.infoObj = append(sf.infoObj, bts...)
+	return sf
+}
+
+// DecodeString decode info object byte to a string value
+func (sf *ASDU) DecodeString(size int) string {
+	if len(sf.infoObj) < size {
+		return ""
+	}
+	f := string(sf.infoObj[:size])
+	sf.infoObj = sf.infoObj[size:]
 	return f
 }
 
