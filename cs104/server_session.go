@@ -415,11 +415,11 @@ func (sf *SrvSession) updateAckNoOut(ackNo uint16) (ok bool) {
 }
 
 func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
-	defer func() {
-		if err := recover(); err != nil {
-			sf.Critical("server handler %+v", err)
-		}
-	}()
+	//defer func() {
+	//	if err := recover(); err != nil {
+	//		sf.Critical("server handler %+v", err)
+	//	}
+	//}()
 
 	sf.Debug("ASDU %+v", asduPack)
 

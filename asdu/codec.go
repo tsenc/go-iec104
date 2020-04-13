@@ -21,6 +21,9 @@ func (sf *ASDU) DecodeByte() byte {
 
 // DecodeBytes decode a byte then the pass it
 func (sf *ASDU) DecodeBytes(size int) []byte {
+	if len(sf.infoObj) < size {
+		return nil
+	}
 	v := sf.infoObj[:size]
 	sf.infoObj = sf.infoObj[size:]
 	return v

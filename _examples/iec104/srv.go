@@ -13,7 +13,7 @@ import (
 	"github.com/thinkgos/go-iecp5/cs104"
 )
 
-const interrogationResolution = 3600 * time.Second // 总召唤每间隔15分钟进行一次
+const interrogationResolution = 10 * time.Minute // 总召唤每间隔15分钟进行一次
 //const counterInterrogationResolution = 15 * time.Minute // 电能召唤每间隔15分钟进行一次
 const clockSyncResolution = 20 * time.Minute // 总召唤每间隔15分钟进行一次
 
@@ -25,6 +25,7 @@ const FILE_PACKET_SIZE = 220
 var fileMapping = make(map[uint32]uint32, 100)
 var fileBuffer = make(map[uint32][]byte, 100)
 var fileNames = make(map[uint32]string, 100)
+var fileSegment = make(map[uint32]uint32, 100)
 
 func main() {
 	srv := cs104.NewServer(&mysrv{})
@@ -149,12 +150,14 @@ func (sf *mysrv) ASDUHandler(c asdu.Connect, asduPack *asdu.ASDU) error {
 			fileName := asduPack.DecodeString(fileNameSize)
 			fileId := asduPack.DecodeBitsString32()
 			fileContentSize := asduPack.DecodeBitsString32()
-			if actRet == 0 {
+			_, has := fileMapping[fileId]
+			if actRet == 0 && !has {
 				// 成功
 				log.Println("收到读文件激活确认成功报文", fileContentSize, fileName, fileId)
 				fileMapping[fileId] = fileContentSize
 				fileNames[fileId] = fileName
 				fileBuffer[fileId] = make([]byte, fileContentSize)
+				fileSegment[fileId] = 0
 			} else {
 				// 失败
 				log.Println("收到读文件激活确认失败报文", fileContentSize, fileName, fileId)
@@ -162,33 +165,43 @@ func (sf *mysrv) ASDUHandler(c asdu.Connect, asduPack *asdu.ASDU) error {
 		} else if asduPack.Coa.Cause == asdu.Request && extraPacketType == 0x02 && opFlag == 0x05 { // 读文件数据报文
 			fileId := asduPack.DecodeBitsString32()
 			segmentId := asduPack.DecodeBitsString32() // 数据段号,可以使用文件内容的偏移指针值
+			cSegmentId, hasSegmentId := fileSegment[fileId]
 			notEOF := asduPack.DecodeByte()
-			cSize := fileMapping[fileId] - segmentId
-			if cSize > FILE_PACKET_SIZE {
-				cSize = FILE_PACKET_SIZE
-			}
-			contents := asduPack.DecodeBytes(int(cSize))
-			chk := asduPack.DecodeByte()
-			if Checksum(contents) == chk && len(fileBuffer[fileId]) > int(segmentId) {
-				fmt.Println("segmentId", segmentId, len(fileBuffer[fileId]))
-				copy(fileBuffer[fileId][segmentId:], contents)
-				log.Println("收到文件传输帧成功报文", fileId, segmentId, cSize, notEOF, "RECV", len(fileBuffer[fileId]))
-				e := asdu.FileReadRequestCmd(c, asdu.CauseOfTransmission{Cause: asdu.Request}, asdu.CommonAddr(1), fileId, segmentId, false)
-				log.Println("文件传输帧成功回复报文发送", e)
-				if notEOF == 0 {
-					log.Println("文件接受完毕，写出", fileRoot, fileNames[fileId])
-					prefix := strings.Split(fileNames[fileId], "_")[0]
-					_ = os.MkdirAll(filepath.Join(fileRoot, prefix), os.ModePerm)
-					err := ioutil.WriteFile(filepath.Join(fileRoot, prefix, fileNames[fileId]), fileBuffer[fileId], 0644)
-					if err != nil {
-						log.Println("文件接受完毕，写出失败", fileRoot+fileNames[fileId], err)
-					}
+			fSize, has := fileMapping[fileId]
+			if has && hasSegmentId && cSegmentId == segmentId {
+				cSize := fSize - segmentId
+				if cSize > FILE_PACKET_SIZE {
+					cSize = FILE_PACKET_SIZE
 				}
-			} else {
-				log.Println("收到文件传输帧成功报文", fileId, segmentId, cSize, notEOF, "RECV", len(fileBuffer[fileId]))
-				e := asdu.FileReadRequestCmd(c, asdu.CauseOfTransmission{Cause: asdu.Request}, asdu.CommonAddr(1), fileId, segmentId, true)
-				log.Println("文件传输帧成功回复报文发送[failed]", e)
+				contents := asduPack.DecodeBytes(int(cSize))
+				chk := asduPack.DecodeByte()
+				if contents != nil && Checksum(contents) == chk && len(fileBuffer[fileId]) > int(segmentId) {
+					fmt.Println("segmentId", segmentId, len(fileBuffer[fileId]))
+					copy(fileBuffer[fileId][segmentId:], contents)
+					log.Println("收到文件传输帧成功报文", fileId, segmentId, cSize, notEOF, "RECV", len(fileBuffer[fileId]))
+					e := asdu.FileReadRequestCmd(c, asdu.CauseOfTransmission{Cause: asdu.Request}, asdu.CommonAddr(1), fileId, segmentId, false)
+					fileSegment[fileId] += cSize
+					log.Println("文件传输帧成功回复报文发送", e)
+					if notEOF == 0 {
+						log.Println("文件接受完毕，写出", fileRoot, fileNames[fileId])
+						prefix := strings.Split(fileNames[fileId], "_")[0]
+						_ = os.MkdirAll(filepath.Join(fileRoot, prefix), os.ModePerm)
+						err := ioutil.WriteFile(filepath.Join(fileRoot, prefix, fileNames[fileId]), fileBuffer[fileId], 0644)
+						if err != nil {
+							log.Println("文件接受完毕，写出失败", fileRoot+fileNames[fileId], err)
+						}
+						delete(fileMapping, fileId)
+						delete(fileNames, fileId)
+						delete(fileBuffer, fileId)
+						delete(fileSegment, fileId)
+					}
+					break
+				}
+				log.Println("收到文件传输帧成功报文", fileId, segmentId, cSize, notEOF, "RECV", len(fileBuffer[fileId]), Checksum(contents) == chk, len(fileBuffer[fileId]) > int(segmentId), len(fileBuffer[fileId]), int(segmentId))
 			}
+			log.Println("收到文件传输帧成功报文", fileId, fSize, cSegmentId, segmentId, notEOF, "RECV", len(fileBuffer[fileId]), len(fileBuffer[fileId]) > int(segmentId), len(fileBuffer[fileId]), int(segmentId))
+			e := asdu.FileReadRequestCmd(c, asdu.CauseOfTransmission{Cause: asdu.Request}, asdu.CommonAddr(1), fileId, segmentId, true)
+			log.Println("文件传输帧成功回复报文发送[failed]", e)
 		}
 		break
 	default:
