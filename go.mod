@@ -1,3 +1,3 @@
-module github.com/thinkgos/go-iecp5
+module github.com/tsenc/go-iec104
 
 go 1.13

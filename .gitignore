@@ -1,2 +1,6 @@
 /.idea/
 /_example/iec104/raw_folder
+_examples/iec104/log
+_examples/iec104/raw_folder
+_examples/iec104/go_build_srv_go
+通信管理机与云平台通讯测试参考报文-20200120.txt
