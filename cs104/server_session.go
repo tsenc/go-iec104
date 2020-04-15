@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/thinkgos/go-iecp5/asdu"
-	"github.com/thinkgos/go-iecp5/clog"
+	"github.com/tsenc/go-iec104/asdu"
+	"github.com/tsenc/go-iec104/clog"
 )
 
 const (

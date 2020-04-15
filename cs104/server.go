@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thinkgos/go-iecp5/asdu"
-	"github.com/thinkgos/go-iecp5/clog"
+	"github.com/tsenc/go-iec104/asdu"
+	"github.com/tsenc/go-iec104/clog"
 )
 
 // timeoutResolution is seconds according to companion standard 104,

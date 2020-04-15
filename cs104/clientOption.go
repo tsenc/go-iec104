@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thinkgos/go-iecp5/asdu"
+	"github.com/tsenc/go-iec104/asdu"
 )
 
 // ClientOption 客户端配置

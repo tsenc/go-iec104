@@ -3,7 +3,7 @@ package cs104
 import (
 	"fmt"
 
-	"github.com/thinkgos/go-iecp5/asdu"
+	"github.com/tsenc/go-iec104/asdu"
 )
 
 const startFrame byte = 0x68 // 起动字符
