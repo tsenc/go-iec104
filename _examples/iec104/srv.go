@@ -105,24 +105,44 @@ func (sf *mysrv) ASDUHandler(c asdu.Connect, asduPack *asdu.ASDU) error {
 	case asdu.M_SP_TB_1: // 3.2 遥信及SOE事件上报上送 带 CP56Time2a 时标的单点信息
 	case asdu.M_SP_NA_1: // 3.2 遥信及SOE事件上报上送 单点信息
 		var ret = asduPack.GetSinglePoint()
-		log.Println("遥信单点 GetSinglePoint", len(ret), ret)
+		log.Println("遥信单点 GetSinglePoint", len(ret))
+		for i, v := range ret {
+			log.Println(c.ServerId(), i, v.Ioa, v.Value, v.Time)
+		}
+		log.Println("========")
 		break
 	case asdu.M_DP_TB_1: // 3.2 遥信及SOE事件上报上送 带 CP56Time2a 时标的双点信息
 	case asdu.M_DP_NA_1: // 3.2 遥信及SOE事件上报上送 双点信息
 		var ret = asduPack.GetDoublePoint()
-		log.Println("遥信双点 GetDoublePoint", len(ret), ret)
+		log.Println("遥信双点 GetDoublePoint", len(ret))
+		for i, v := range ret {
+			log.Println(c.ServerId(), i, v.Ioa, v.Value, v.Time)
+		}
+		log.Println("========")
 		break
 	case asdu.M_ME_NC_1: // 3.1 遥测上送 短浮点数
 		var ret = asduPack.GetMeasuredValueFloat()
-		log.Println("遥测上送 GetMeasuredValueFloat", len(ret), ret)
+		log.Println("遥测上送 GetMeasuredValueFloat", len(ret))
+		for i, v := range ret {
+			log.Println(c.ServerId(), i, v.Ioa, v.Value, v.Time)
+		}
+		log.Println("========")
 		break
 	case asdu.M_IT_NB_1: // 3.3.2 电能量上送 累计量，浮点短数
 		var ret = asduPack.GetIntegratedFloatTotals()
-		log.Println("电能量上送 累计量 GetIntegratedFloatTotals", len(ret), ret)
+		log.Println("电能量上送 累计量 GetIntegratedFloatTotals", len(ret))
+		for i, v := range ret {
+			log.Println(c.ServerId(), i, v.Ioa, v.Value, v.Time)
+		}
+		log.Println("========")
 		break
 	case asdu.M_ME_NA_1: // 测量值，归一化值
 		var ret = asduPack.GetMeasuredValueNormal()
-		log.Println("测量值，归一化值 GetMeasuredValueNormal", len(ret), ret)
+		log.Println("测量值，归一化值 GetMeasuredValueNormal", len(ret))
+		for i, v := range ret {
+			log.Println(c.ServerId(), i, v.Ioa, v.Value, v.Time)
+		}
+		log.Println("========")
 		break
 	case asdu.F_NF_NA_1: // 新文件主动上报
 		asduPack.DecodeInfoObjAddr()
