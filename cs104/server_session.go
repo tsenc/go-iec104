@@ -241,7 +241,7 @@ func (sf *SrvSession) run(ctx context.Context) {
 				//now.Sub(sf.peek()) >= sf.SendUnAckTimeout1 {
 				now.Sub(sf.pending[0].sendTime) >= sf.config.SendUnAckTimeout1 {
 				sf.ackNoSend++
-				sf.Error("fatal transmission timeout t₁")
+				sf.Error("fatal transmission timeout t₁ sf.ackNoSend %v sf.seqNoSend %v sub %v", sf.ackNoSend, sf.seqNoSend, now.Sub(sf.pending[0].sendTime))
 				return
 			}
 
@@ -415,11 +415,11 @@ func (sf *SrvSession) updateAckNoOut(ackNo uint16) (ok bool) {
 }
 
 func (sf *SrvSession) serverHandler(asduPack *asdu.ASDU) error {
-	//defer func() {
-	//	if err := recover(); err != nil {
-	//		sf.Critical("server handler %+v", err)
-	//	}
-	//}()
+	defer func() {
+		if err := recover(); err != nil {
+			sf.Critical("server handler %+v", err)
+		}
+	}()
 
 	sf.Debug("ASDU %+v", asduPack)
 
